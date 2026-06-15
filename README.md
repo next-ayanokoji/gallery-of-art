@@ -396,3 +396,4 @@ For support, please open an issue in the repository or contact the development t
 
 Built with ❤️ using modern web technologies
 # gallery-of-art
+# gallery-of-art
