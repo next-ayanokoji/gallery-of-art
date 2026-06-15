@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Artistry Gallery</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="header-brand">
+                <h1>Admin Dashboard</h1>
+                <span class="header-tagline">Manage your artwork gallery</span>
+            </div>
+            <div class="header-actions">
+                <span class="admin-info" id="adminInfo">Welcome, Admin</span>
+                <button class="btn btn-secondary" id="logoutButton">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <path d="M16 17l5-5-5-5"></path>
+                        <path d="M21 12H9"></path>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard-main">
+        <!-- Stats Section -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <path d="m21 15-5-5L5 21"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="totalArtworks">0</h3>
+                    <p class="stat-label">Total Artworks</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="totalCategories">0</h3>
+                    <p class="stat-label">Categories</p>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <path d="M17 8l-5-5-5 5"></path>
+                        <path d="M12 3v12"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="recentUploads">0</h3>
+                    <p class="stat-label">This Month</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="section-header">
+                <h2 class="section-title">Upload New Artwork</h2>
+                <p class="section-subtitle">Add a new artwork to your gallery</p>
+            </div>
+            
+            <form class="upload-form" id="uploadForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="title">Title *</label>
+                        <input type="text" id="title" name="title" required placeholder="Enter artwork title" maxlength="100">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <select id="category" name="category" required>
+                            <option value="">Select category</option>
+                            <option value="painting">Painting</option>
+                            <option value="sculpture">Sculpture</option>
+                            <option value="photography">Photography</option>
+                            <option value="digital">Digital Art</option>
+                            <option value="mixed-media">Mixed Media</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="caption">Caption *</label>
+                    <textarea id="caption" name="caption" required placeholder="Describe your artwork..." maxlength="500" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="image">Image *</label>
+                    <div class="file-upload" id="fileUpload">
+                        <input type="file" id="image" name="image" accept="image/*" required>
+                        <div class="file-upload-content" id="fileUploadContent">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <path d="M17 8l-5-5-5 5"></path>
+                                <path d="M12 3v12"></path>
+                            </svg>
+                            <p>Drag and drop an image or click to browse</p>
+                            <span class="file-hint">Supported formats: JPG, PNG, WebP, GIF (Max 10MB)</span>
+                        </div>
+                        <div class="file-preview" id="filePreview" style="display: none;">
+                            <img src="" alt="Preview" id="previewImage">
+                            <button type="button" class="file-remove" id="fileRemove">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6 6 18"></path>
+                                    <path d="m6 6 12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-error" id="uploadError"></div>
+                
+                <button type="submit" class="btn btn-primary" id="uploadButton">
+                    <span class="btn-text">Upload Artwork</span>
+                    <div class="btn-loader" style="display: none;"></div>
+                </button>
+            </form>
+        </section>
+
+        <!-- Manage Artworks Section -->
+        <section class="manage-section">
+            <div class="section-header">
+                <h2 class="section-title">Manage Artworks</h2>
+                <p class="section-subtitle">View, edit, or delete your uploaded artworks</p>
+            </div>
+            
+            <div class="artworks-table-container">
+                <table class="artworks-table" id="artworksTable">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="artworksTableBody">
+                        <!-- Artwork rows will be dynamically inserted here -->
+                    </tbody>
+                </table>
+                
+                <div class="table-loading" id="tableLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading artworks...</p>
+                </div>
+                
+                <div class="table-empty" id="tableEmpty" style="display: none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <path d="m21 15-5-5L5 21"></path>
+                    </svg>
+                    <h4>No artworks yet</h4>
+                    <p>Upload your first artwork to get started</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Edit Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <button class="modal-close" id="editModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h3>Edit Artwork</h3>
+                <p>Update artwork details</p>
+            </div>
+            <form class="edit-form" id="editForm">
+                <input type="hidden" id="editArtworkId">
+                
+                <div class="form-group">
+                    <label for="editTitle">Title *</label>
+                    <input type="text" id="editTitle" name="title" required maxlength="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editCategory">Category *</label>
+                    <select id="editCategory" name="category" required>
+                        <option value="painting">Painting</option>
+                        <option value="sculpture">Sculpture</option>
+                        <option value="photography">Photography</option>
+                        <option value="digital">Digital Art</option>
+                        <option value="mixed-media">Mixed Media</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editCaption">Caption *</label>
+                    <textarea id="editCaption" name="caption" required maxlength="500" rows="4"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editImage">Update Image (optional)</label>
+                    <div class="file-upload" id="editFileUpload">
+                        <input type="file" id="editImage" name="image" accept="image/*">
+                        <div class="file-upload-content" id="editFileUploadContent">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <path d="M17 8l-5-5-5 5"></path>
+                                <path d="M12 3v12"></path>
+                            </svg>
+                            <p>Click to change image</p>
+                        </div>
+                        <div class="file-preview" id="editFilePreview" style="display: none;">
+                            <img src="" alt="Preview" id="editPreviewImage">
+                            <button type="button" class="file-remove" id="editFileRemove">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6 6 18"></path>
+                                    <path d="m6 6 12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-error" id="editError"></div>
+                
+                <button type="submit" class="btn btn-primary" id="editButton">
+                    <span class="btn-text">Update Artwork</span>
+                    <div class="btn-loader" style="display: none;"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content modal-small">
+            <button class="modal-close" id="deleteModalClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6 6 18"></path>
+                    <path d="m6 6 12 12"></path>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h3>Delete Artwork</h3>
+                <p>Are you sure you want to delete this artwork?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelDelete">Cancel</button>
+                <button class="btn btn-danger" id="confirmDelete">
+                    <span class="btn-text">Delete</span>
+                    <div class="btn-loader" style="display: none;"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
