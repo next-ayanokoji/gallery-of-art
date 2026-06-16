@@ -1,11 +1,15 @@
 /**
  * Dashboard JavaScript
- * Handles admin dashboard functionality including stats, uploads, and artwork management
+ * Handles admin dashboard functionality including stats, uploads, and artwork management using Supabase directly
  */
 
 // DOM Elements
 const logoutButton = document.getElementById('logoutButton');
 const adminInfo = document.getElementById('adminInfo');
+const avatarUploadBtn = document.getElementById('avatarUploadBtn');
+const avatarInput = document.getElementById('avatarInput');
+const uploadSectionAvatar = document.getElementById('uploadSectionAvatar');
+const uploaderName = document.getElementById('uploaderName');
 const totalArtworks = document.getElementById('totalArtworks');
 const totalCategories = document.getElementById('totalCategories');
 const recentUploads = document.getElementById('recentUploads');
@@ -41,10 +45,11 @@ let artworks = [];
 let artworkToDelete = null;
 let selectedFile = null;
 let editSelectedFile = null;
+let currentUser = null;
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
     loadDashboardData();
     setupEventListeners();
 });
@@ -52,17 +57,82 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Check authentication status
  */
-function checkAuth() {
-    const token = localStorage.getItem('adminToken');
-    const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+async function checkAuth() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
     
-    if (!token) {
-        window.location.href = '/admin';
+    if (!session) {
+        window.location.href = 'admin.html';
         return;
     }
     
-    // Update admin info
-    adminInfo.textContent = `Welcome, ${user.username || 'Admin'}`;
+    // Get user data
+    let userData;
+    let userError;
+    
+    try {
+        const result = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+        userData = result.data;
+        userError = result.error;
+    } catch (e) {
+        userError = e;
+    }
+    
+    console.log('User data from DB:', userData);
+    console.log('User error:', userError);
+    console.log('Avatar URL from DB:', userData?.avatar_url);
+    
+    // If user doesn't exist in users table, create them
+    if (!userData || userError) {
+        console.log('User not found in users table, creating...');
+        const { data: newUser, error: createError } = await supabaseClient
+            .from('users')
+            .insert([{
+                id: session.user.id,
+                email: session.user.email,
+                username: session.user.email?.split('@')[0] || 'admin',
+                role: 'admin'
+            }])
+            .select()
+            .single();
+        
+        if (createError) {
+            console.error('Error creating user:', createError);
+        } else {
+            console.log('User created:', newUser);
+            userData = newUser;
+        }
+    }
+    
+    currentUser = userData || { username: session.user.email?.split('@')[0] || 'Admin' };
+    adminInfo.textContent = `Welcome, ${currentUser.username || 'Admin'}`;
+    
+    // Show admin avatar if available
+    if (currentUser.avatar_url) {
+        console.log('Loading avatar:', currentUser.avatar_url);
+        const adminAvatar = document.getElementById('adminAvatar');
+        adminAvatar.src = currentUser.avatar_url;
+        adminAvatar.style.display = 'block';
+        
+        // Update upload section avatar
+        uploadSectionAvatar.src = currentUser.avatar_url;
+    } else {
+        console.log('No avatar found, using default');
+        // Show default avatar
+        const defaultAvatar = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%237c3aed"><circle cx="12" cy="8" r="4"/><path d="M12 14c-4 0-7.33 2.67-8 6h16c-.67-3.33-4-6-8-6z"/></svg>';
+        const adminAvatar = document.getElementById('adminAvatar');
+        adminAvatar.src = defaultAvatar;
+        adminAvatar.style.display = 'block';
+        
+        // Update upload section avatar
+        uploadSectionAvatar.src = defaultAvatar;
+    }
+    
+    // Update uploader name in upload section
+    uploaderName.textContent = currentUser.username || 'Admin';
 }
 
 /**
@@ -80,25 +150,35 @@ async function loadDashboardData() {
  */
 async function loadStats() {
     try {
-        const token = localStorage.getItem('adminToken');
-        const response = await fetch('/api/artworks/stats/summary', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        // Get total count
+        const { count: totalArtworksCount, error: countError } = await supabaseClient
+            .from('artworks')
+            .select('*', { count: 'exact', head: true });
         
-        const data = await response.json();
+        if (countError) throw countError;
         
-        if (data.success) {
-            totalArtworks.textContent = data.stats.totalArtworks;
-            totalCategories.textContent = data.stats.artworksByCategory.length;
-            
-            // Calculate recent uploads (this month)
-            const thisMonth = new Date();
-            thisMonth.setDate(1);
-            const recentCount = artworks.filter(a => new Date(a.createdAt) >= thisMonth).length;
-            recentUploads.textContent = recentCount;
-        }
+        // Get artworks by category
+        const { data: artworksData, error: dataError } = await supabaseClient
+            .from('artworks')
+            .select('category');
+        
+        if (dataError) throw dataError;
+        
+        // Group by category
+        const artworksByCategory = artworksData.reduce((acc, artwork) => {
+            const category = artwork.category;
+            acc[category] = (acc[category] || 0) + 1;
+            return acc;
+        }, {});
+        
+        totalArtworks.textContent = totalArtworksCount || 0;
+        totalCategories.textContent = Object.keys(artworksByCategory).length;
+        
+        // Calculate recent uploads (this month)
+        const thisMonth = new Date();
+        thisMonth.setDate(1);
+        const recentCount = artworks.filter(a => new Date(a.createdAt) >= thisMonth).length;
+        recentUploads.textContent = recentCount;
     } catch (error) {
         console.error('Error loading stats:', error);
     }
@@ -111,21 +191,15 @@ async function loadArtworks() {
     try {
         showTableLoading();
         
-        const token = localStorage.getItem('adminToken');
-        const response = await fetch('/api/artworks', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const { data: artworksData, error } = await supabaseClient
+            .from('artworks')
+            .select('*, users(username, avatar_url)')
+            .order('created_at', { ascending: false });
         
-        const data = await response.json();
+        if (error) throw error;
         
-        if (data.success) {
-            artworks = data.artworks;
-            renderArtworksTable(artworks);
-        } else {
-            showTableEmpty();
-        }
+        artworks = artworksData.map(convertArtwork);
+        renderArtworksTable(artworks);
     } catch (error) {
         console.error('Error loading artworks:', error);
         showTableEmpty();
@@ -153,6 +227,21 @@ function renderArtworksTable(artworksToRender) {
 }
 
 /**
+ * Convert Supabase artwork to frontend format
+ */
+function convertArtwork(artwork) {
+    return {
+        ...artwork,
+        _id: artwork.id,
+        createdAt: artwork.created_at,
+        imageUrl: artwork.image_url,
+        uploadedBy: artwork.uploaded_by,
+        uploaderName: artwork.users?.username || 'Unknown',
+        uploaderAvatar: artwork.users?.avatar_url
+    };
+}
+
+/**
  * Create artwork table row
  */
 function createArtworkRow(artwork) {
@@ -164,6 +253,12 @@ function createArtworkRow(artwork) {
         </td>
         <td class="artwork-title-cell">${escapeHtml(artwork.title)}</td>
         <td><span class="category-badge">${escapeHtml(artwork.category)}</span></td>
+        <td class="uploader-cell">
+            <div class="uploader-info">
+                ${artwork.uploaderAvatar ? `<img src="${artwork.uploaderAvatar}" alt="${escapeHtml(artwork.uploaderName)}" class="table-avatar">` : ''}
+                <span>${escapeHtml(artwork.uploaderName)}</span>
+            </div>
+        </td>
         <td class="date-cell">${formatDate(artwork.createdAt)}</td>
         <td class="actions-cell">
             <button class="action-btn edit" data-id="${artwork._id}" title="Edit">
@@ -197,6 +292,10 @@ function createArtworkRow(artwork) {
 function setupEventListeners() {
     // Logout button
     logoutButton.addEventListener('click', handleLogout);
+    
+    // Avatar upload
+    avatarUploadBtn.addEventListener('click', () => avatarInput.click());
+    avatarInput.addEventListener('change', handleAvatarUpload);
     
     // Upload form
     uploadForm.addEventListener('submit', handleUpload);
@@ -249,10 +348,91 @@ function setupEventListeners() {
 /**
  * Handle logout
  */
-function handleLogout() {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
-    window.location.href = '/admin';
+async function handleLogout() {
+    console.log('Logging out...');
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+        console.error('Logout error:', error);
+    } else {
+        console.log('Logout successful');
+    }
+    window.location.href = 'admin.html';
+}
+
+/**
+ * Handle avatar upload
+ */
+async function handleAvatarUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB');
+        return;
+    }
+    
+    try {
+        // Upload avatar to Supabase Storage
+        const fileName = `${currentUser.id}-${Date.now()}-${file.name}`;
+        const filePath = `avatars/${fileName}`;
+        
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('user-avatars')
+            .upload(filePath, file);
+        
+        if (uploadError) throw uploadError;
+        
+        // Get public URL
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('user-avatars')
+            .getPublicUrl(filePath);
+        
+        // Update user record with new avatar URL
+        console.log('Updating user record with avatar URL:', publicUrl);
+        console.log('Current user ID:', currentUser.id);
+        
+        const { error: updateError } = await supabaseClient
+            .from('users')
+            .update({ avatar_url: publicUrl })
+            .eq('id', currentUser.id);
+        
+        if (updateError) {
+            console.error('Update error:', updateError);
+            throw updateError;
+        }
+        
+        console.log('Avatar saved to database:', publicUrl);
+        
+        // Verify the update
+        const { data: verifyData } = await supabaseClient
+            .from('users')
+            .select('avatar_url')
+            .eq('id', currentUser.id)
+            .single();
+        
+        console.log('Verified avatar_url in DB:', verifyData?.avatar_url);
+        
+        // Update UI
+        const adminAvatar = document.getElementById('adminAvatar');
+        adminAvatar.src = publicUrl;
+        uploadSectionAvatar.src = publicUrl;
+        currentUser.avatar_url = publicUrl;
+        
+        alert('Avatar updated successfully!');
+    } catch (error) {
+        console.error('Avatar upload error:', error);
+        alert('Failed to upload avatar. Please try again.');
+    }
+    
+    // Reset input
+    avatarInput.value = '';
 }
 
 /**
@@ -328,39 +508,51 @@ async function handleUpload(e) {
     hideError(uploadError);
     
     try {
-        const token = localStorage.getItem('adminToken');
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('caption', caption);
-        formData.append('category', category);
-        formData.append('image', selectedFile);
+        // Upload image to Supabase Storage
+        const fileName = `${Date.now()}-${selectedFile.name}`;
+        const filePath = `artwork-images/${fileName}`;
         
-        const response = await fetch('/api/artworks', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+            .from('artwork-images')
+            .upload(filePath, selectedFile);
         
-        const data = await response.json();
+        if (uploadError) throw uploadError;
         
-        if (data.success) {
-            // Reset form
-            uploadForm.reset();
-            handleFileRemove();
-            
-            // Reload data
-            await loadDashboardData();
-            
-            // Show success message
-            alert('Artwork uploaded successfully!');
-        } else {
-            showError(uploadError, data.message || 'Upload failed');
+        // Get public URL
+        const { data: { publicUrl } } = supabaseClient.storage
+            .from('artwork-images')
+            .getPublicUrl(filePath);
+        
+        // Create artwork record
+        const { error: dbError } = await supabaseClient
+            .from('artworks')
+            .insert([{
+                title,
+                caption,
+                category,
+                image_url: publicUrl,
+                storage_path: filePath,
+                uploaded_by: currentUser.id
+            }]);
+        
+        if (dbError) {
+            // Clean up uploaded image if database insert fails
+            await supabaseClient.storage.from('artwork-images').remove([filePath]);
+            throw dbError;
         }
+        
+        // Reset form
+        uploadForm.reset();
+        handleFileRemove();
+        
+        // Reload data
+        await loadDashboardData();
+        
+        // Show success message
+        alert('Artwork uploaded successfully!');
     } catch (error) {
         console.error('Upload error:', error);
-        showError(uploadError, 'An error occurred. Please try again.');
+        showError(uploadError, error.message || 'An error occurred. Please try again.');
     } finally {
         setLoading(uploadButton, false);
     }
@@ -370,7 +562,7 @@ async function handleUpload(e) {
  * Open edit modal
  */
 function openEditModal(artwork) {
-    document.getElementById('editArtworkId').value = artwork._id;
+    document.getElementById('editArtworkId').value = artwork.id;
     document.getElementById('editTitle').value = artwork.title;
     document.getElementById('editCategory').value = artwork.category;
     document.getElementById('editCaption').value = artwork.caption;
@@ -459,36 +651,59 @@ async function handleEdit(e) {
     hideError(editError);
     
     try {
-        const token = localStorage.getItem('adminToken');
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('caption', caption);
-        formData.append('category', category);
+        // Get existing artwork
+        const { data: existingArtwork, error: fetchError } = await supabaseClient
+            .from('artworks')
+            .select('*')
+            .eq('id', artworkId)
+            .single();
         
+        if (fetchError) throw fetchError;
+        
+        const updateData = {
+            title,
+            caption,
+            category
+        };
+        
+        // Update image if new one is uploaded
         if (editSelectedFile) {
-            formData.append('image', editSelectedFile);
+            // Delete old image from Supabase Storage
+            await supabaseClient.storage.from('artwork-images').remove([existingArtwork.storage_path]);
+            
+            // Upload new image
+            const fileName = `${Date.now()}-${editSelectedFile.name}`;
+            const filePath = `artwork-images/${fileName}`;
+            
+            const { error: uploadError } = await supabaseClient.storage
+                .from('artwork-images')
+                .upload(filePath, editSelectedFile);
+            
+            if (uploadError) throw uploadError;
+            
+            // Get public URL
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('artwork-images')
+                .getPublicUrl(filePath);
+            
+            updateData.image_url = publicUrl;
+            updateData.storage_path = filePath;
         }
         
-        const response = await fetch(`/api/artworks/${artworkId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
+        // Update artwork in database
+        const { error } = await supabaseClient
+            .from('artworks')
+            .update(updateData)
+            .eq('id', artworkId);
         
-        const data = await response.json();
+        if (error) throw error;
         
-        if (data.success) {
-            closeEditModal();
-            await loadDashboardData();
-            alert('Artwork updated successfully!');
-        } else {
-            showError(editError, data.message || 'Update failed');
-        }
+        closeEditModal();
+        await loadDashboardData();
+        alert('Artwork updated successfully!');
     } catch (error) {
         console.error('Edit error:', error);
-        showError(editError, 'An error occurred. Please try again.');
+        showError(editError, error.message || 'An error occurred. Please try again.');
     } finally {
         setLoading(editButton, false);
     }
@@ -521,23 +736,29 @@ async function handleDelete() {
     setLoading(confirmDelete, true);
     
     try {
-        const token = localStorage.getItem('adminToken');
-        const response = await fetch(`/api/artworks/${artworkToDelete}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        // Get artwork
+        const { data: artwork, error: fetchError } = await supabaseClient
+            .from('artworks')
+            .select('*')
+            .eq('id', artworkToDelete)
+            .single();
         
-        const data = await response.json();
+        if (fetchError) throw fetchError;
         
-        if (data.success) {
-            closeDeleteModal();
-            await loadDashboardData();
-            alert('Artwork deleted successfully!');
-        } else {
-            alert(data.message || 'Delete failed');
-        }
+        // Delete image from Supabase Storage
+        await supabaseClient.storage.from('artwork-images').remove([artwork.storage_path]);
+        
+        // Delete artwork from database
+        const { error } = await supabaseClient
+            .from('artworks')
+            .delete()
+            .eq('id', artworkToDelete);
+        
+        if (error) throw error;
+        
+        closeDeleteModal();
+        await loadDashboardData();
+        alert('Artwork deleted successfully!');
     } catch (error) {
         console.error('Delete error:', error);
         alert('An error occurred. Please try again.');

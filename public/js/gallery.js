@@ -17,6 +17,8 @@ const modalCaption = document.getElementById('modalCaption');
 const modalCategory = document.getElementById('modalCategory');
 const modalDate = document.getElementById('modalDate');
 const navLinks = document.querySelectorAll('.nav-link');
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const navLinksContainer = document.getElementById('navLinks');
 
 // State
 let currentCategory = 'all';
@@ -36,25 +38,35 @@ async function loadArtworks() {
     try {
         showLoading();
         
-        // Build query parameters
-        const params = new URLSearchParams();
+        let query = supabaseClient.from('artworks').select('*, users(username, avatar_url)');
+        
+        // Filter by category
         if (currentCategory !== 'all') {
-            params.append('category', currentCategory);
+            query = query.eq('category', currentCategory);
         }
+        
+        // Search by title or caption
         if (currentSearch) {
-            params.append('search', currentSearch);
+            query = query.or(`title.ilike.%${currentSearch}%,caption.ilike.%${currentSearch}%`);
         }
         
-        const response = await fetch(`/api/artworks?${params}`);
-        const data = await response.json();
+        // Order by created_at descending
+        query = query.order('created_at', { ascending: false });
         
-        if (data.success) {
-            artworks = data.artworks;
-            renderArtworks(artworks);
-            updateArtworkCount(artworks.length);
-        } else {
-            showError('Failed to load artworks');
-        }
+        const { data: artworksData, error } = await query;
+        
+        if (error) throw error;
+        
+        artworks = artworksData.map(artwork => ({
+            ...artwork,
+            _id: artwork.id,
+            createdAt: artwork.created_at,
+            imageUrl: artwork.image_url,
+            uploaderName: artwork.users?.username || 'Unknown',
+            uploaderAvatar: artwork.users?.avatar_url
+        }));
+        renderArtworks(artworks);
+        updateArtworkCount(artworks.length);
     } catch (error) {
         console.error('Error loading artworks:', error);
         showError('Error loading artworks. Please try again.');
@@ -95,6 +107,10 @@ function createArtworkCard(artwork) {
         <img src="${artwork.imageUrl}" alt="${artwork.title}" class="artwork-image" loading="lazy">
         <div class="artwork-info">
             <h3 class="artwork-title">${escapeHtml(artwork.title)}</h3>
+            <div class="artwork-uploader">
+                ${artwork.uploaderAvatar ? `<img src="${artwork.uploaderAvatar}" alt="${escapeHtml(artwork.uploaderName)}" class="uploader-avatar">` : ''}
+                <span>by ${escapeHtml(artwork.uploaderName)}</span>
+            </div>
         </div>
         <div class="artwork-overlay">
             <h3 class="artwork-title">${escapeHtml(artwork.title)}</h3>
@@ -102,6 +118,7 @@ function createArtworkCard(artwork) {
             <div class="artwork-meta">
                 <span class="artwork-category">${escapeHtml(artwork.category)}</span>
                 <span class="artwork-date">${formattedDate}</span>
+                <span class="artwork-uploader">by ${escapeHtml(artwork.uploaderName)}</span>
             </div>
         </div>
     `;
@@ -123,6 +140,11 @@ function openModal(artwork) {
     modalCategory.textContent = artwork.category;
     modalDate.textContent = formatDate(artwork.createdAt);
     
+    // Add uploader info if available
+    if (artwork.uploaderName) {
+        modalCaption.textContent += `\n\nUploaded by: ${artwork.uploaderName}`;
+    }
+    
     imageModal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -139,6 +161,22 @@ function closeModal() {
  * Setup event listeners
  */
 function setupEventListeners() {
+    // Mobile menu toggle
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            navLinksContainer.classList.toggle('active');
+        });
+    }
+    
+    // Close mobile menu when clicking a link
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                navLinksContainer.classList.remove('active');
+            }
+        });
+    });
+    
     // Search input with debounce
     let searchTimeout;
     searchInput.addEventListener('input', (e) => {

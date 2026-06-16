@@ -8,17 +8,41 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://smmbkfwuogvsjatoaqgq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbWJrZnd1b2d2c2phdG9hcWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjcxOTYsImV4cCI6MjA5NzE0MzE5Nn0.9QxSR3eJyZZNjQZrC6ImT5gux1Z72noVvSid-9QWRCM';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
 </head>
 <body class="dashboard-page">
     <!-- Dashboard Header -->
     <header class="dashboard-header">
         <div class="header-content">
             <div class="header-brand">
-                <h1>Admin Dashboard</h1>
-                <span class="header-tagline">Manage your artwork gallery</span>
+                <div class="dashboard-logo">
+                    <img src="images/logo.jpg" alt="Artistry Logo" width="36" height="36">
+                </div>
+                <div class="brand-text">
+                    <h1>Admin Dashboard</h1>
+                    <span class="header-tagline">Manage your artwork gallery</span>
+                </div>
             </div>
             <div class="header-actions">
-                <span class="admin-info" id="adminInfo">Welcome, Admin</span>
+                <div class="admin-profile" id="adminProfile">
+                    <div class="avatar-wrapper">
+                        <img src="" alt="Avatar" class="admin-avatar" id="adminAvatar" style="display: none;">
+                        <button class="avatar-upload-btn" id="avatarUploadBtn" title="Change Avatar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                        </button>
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                    </div>
+                    <span class="admin-info" id="adminInfo">Welcome, Admin</span>
+                </div>
                 <button class="btn btn-secondary" id="logoutButton">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -84,6 +108,14 @@
                 <p class="section-subtitle">Add a new artwork to your gallery</p>
             </div>
             
+            <div class="uploader-info-section" id="uploaderInfoSection">
+                <img src="" alt="Your Avatar" class="upload-section-avatar" id="uploadSectionAvatar">
+                <div class="uploader-details">
+                    <p class="uploader-label">Uploading as</p>
+                    <p class="uploader-name" id="uploaderName">Loading...</p>
+                </div>
+            </div>
+            
             <form class="upload-form" id="uploadForm">
                 <div class="form-row">
                     <div class="form-group">
@@ -93,7 +125,7 @@
                     
                     <div class="form-group">
                         <label for="category">Category *</label>
-                        <select id="category" name="category" required>
+                        <select id="category" name="category" required class="form-select">
                             <option value="">Select category</option>
                             <option value="painting">Painting</option>
                             <option value="sculpture">Sculpture</option>
@@ -158,6 +190,7 @@
                             <th>Image</th>
                             <th>Title</th>
                             <th>Category</th>
+                            <th>Uploaded By</th>
                             <th>Date</th>
                             <th>Actions</th>
                         </tr>

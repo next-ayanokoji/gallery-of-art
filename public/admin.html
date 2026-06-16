@@ -8,19 +8,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://smmbkfwuogvsjatoaqgq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbWJrZnd1b2d2c2phdG9hcWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjcxOTYsImV4cCI6MjA5NzE0MzE5Nn0.9QxSR3eJyZZNjQZrC6ImT5gux1Z72noVvSid-9QWRCM';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
 </head>
 <body class="login-page">
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
+                <div class="admin-logo">
+                    <img src="images/logo.jpg" alt="Artistry Logo" width="48" height="48">
+                </div>
                 <h1>Admin Portal</h1>
                 <p>Sign in to manage your artwork gallery</p>
             </div>
             
             <form class="login-form" id="loginForm">
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" required placeholder="Enter your username">
+                    <label for="username">Gmail</label>
+                    <input type="text" id="username" name="username" required placeholder="Enter your E-mail">
                 </div>
                 
                 <div class="form-group">

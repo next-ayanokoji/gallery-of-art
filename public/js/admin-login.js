@@ -16,6 +16,10 @@ const registerError = document.getElementById('registerError');
 
 // Check if user is already logged in
 document.addEventListener('DOMContentLoaded', () => {
+    // Clear form fields
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    
     checkAuthStatus();
     setupEventListeners();
 });
@@ -23,27 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Check authentication status
  */
-function checkAuthStatus() {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-        // Verify token is valid
-        fetch('/api/auth/me', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Token is valid, redirect to dashboard
-                window.location.href = '/admin/dashboard';
-            } else {
-                // Token is invalid, remove it
-                localStorage.removeItem('adminToken');
-            }
-        })
-        .catch(() => {
-            localStorage.removeItem('adminToken');
-        });
+async function checkAuthStatus() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    console.log('Current session:', session);
+    if (session) {
+        // User is logged in, redirect to dashboard
+        window.location.href = 'dashboard.html';
     }
 }
 
@@ -87,10 +76,10 @@ function setupEventListeners() {
 async function handleLogin(e) {
     e.preventDefault();
     
-    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     
-    if (!username || !password) {
+    if (!email || !password) {
         showError(loginError, 'Please fill in all fields');
         return;
     }
@@ -99,25 +88,37 @@ async function handleLogin(e) {
     hideError(loginError);
     
     try {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, password })
+        console.log('Attempting login with email:', email);
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
         });
         
-        const data = await response.json();
+        console.log('Login response:', data, error);
         
-        if (data.success) {
-            // Store token in localStorage
-            localStorage.setItem('adminToken', data.token);
-            localStorage.setItem('adminUser', JSON.stringify(data.user));
+        if (error) {
+            console.error('Login error:', error);
+            showError(loginError, error.message || 'Login failed');
+        } else {
+            console.log('Login successful, user:', data.user);
+            // Create user record if it doesn't exist
+            const { error: userError } = await supabaseClient
+                .from('users')
+                .upsert([{
+                    id: data.user.id,
+                    email: data.user.email,
+                    username: data.user.email?.split('@')[0] || 'admin',
+                    role: 'admin'
+                }], {
+                    onConflict: 'id'
+                });
+            
+            if (userError) {
+                console.error('User record error:', userError);
+            }
             
             // Redirect to dashboard
-            window.location.href = '/admin/dashboard';
-        } else {
-            showError(loginError, data.message || 'Login failed');
+            window.location.href = 'dashboard.html';
         }
     } catch (error) {
         console.error('Login error:', error);
@@ -133,12 +134,12 @@ async function handleLogin(e) {
 async function handleRegister(e) {
     e.preventDefault();
     
-    const username = document.getElementById('regUsername').value.trim();
     const email = document.getElementById('regEmail').value.trim();
+    const username = document.getElementById('regUsername').value.trim();
     const password = document.getElementById('regPassword').value;
     
-    if (!username || !email || !password) {
-        showError(registerError, 'Please fill in all fields');
+    if (!email || !password) {
+        showError(registerError, 'Please fill in all required fields');
         return;
     }
     
@@ -151,26 +152,36 @@ async function handleRegister(e) {
     hideError(registerError);
     
     try {
-        const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, email, password })
+        const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    username: username || email.split('@')[0]
+                }
+            }
         });
         
-        const data = await response.json();
-        
-        if (data.success) {
-            // Store token in localStorage
-            localStorage.setItem('adminToken', data.token);
-            localStorage.setItem('adminUser', JSON.stringify(data.user));
+        if (error) {
+            showError(registerError, error.message || 'Registration failed');
+        } else {
+            // Create user record
+            const { error: userError } = await supabaseClient
+                .from('users')
+                .insert([{
+                    id: data.user.id,
+                    email: data.user.email,
+                    username: username || email.split('@')[0],
+                    role: 'admin'
+                }]);
+            
+            if (userError) {
+                console.error('User record error:', userError);
+            }
             
             // Close modal and redirect to dashboard
             closeRegisterModal();
-            window.location.href = '/admin/dashboard';
-        } else {
-            showError(registerError, data.message || 'Registration failed');
+            window.location.href = 'dashboard.html';
         }
     } catch (error) {
         console.error('Registration error:', error);

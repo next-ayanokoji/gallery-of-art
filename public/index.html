@@ -8,16 +8,35 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://smmbkfwuogvsjatoaqgq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbWJrZnd1b2d2c2phdG9hcWdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjcxOTYsImV4cCI6MjA5NzE0MzE5Nn0.9QxSR3eJyZZNjQZrC6ImT5gux1Z72noVvSid-9QWRCM';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <h1>Artistry</h1>
-                <span class="nav-tagline">Digital Art Gallery</span>
+                <div class="logo">
+                    <img src="images/logo.jpg" alt="Artistry Logo" width="40" height="40">
+                </div>
+                <div class="brand-text">
+                    <h1>K4!S3R</h1>
+                    <span class="nav-tagline">js a normal human</span>
+                </div>
             </div>
-            <div class="nav-links">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="nav-links" id="navLinks">
                 <a href="#" class="nav-link active" data-filter="all">All</a>
                 <a href="#" class="nav-link" data-filter="painting">Painting</a>
                 <a href="#" class="nav-link" data-filter="sculpture">Sculpture</a>
@@ -32,7 +51,7 @@
     <section class="hero">
         <div class="hero-content">
             <h2 class="hero-title">Discover Extraordinary Art</h2>
-            <p class="hero-subtitle">Explore our curated collection of stunning artworks from talented artists around the world</p>
+            <p class="hero-subtitle">Explore our curated collection of stunning artworks from talented artists.... Thode gadhe h par ache h</p>
             <div class="search-container">
                 <input type="text" id="searchInput" class="search-input" placeholder="Search artworks by title or caption...">
                 <button class="search-button">
@@ -102,7 +121,7 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <p>&copy; 2024 Artistry Gallery. All rights reserved.</p>
+            <p>CHILL DUDE</p>
             <p>A premium digital art gallery experience</p>
         </div>
     </footer>
